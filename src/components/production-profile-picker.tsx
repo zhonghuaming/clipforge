@@ -18,7 +18,7 @@ function Meter({ value, label }: { value: 1 | 2 | 3; label: string }) {
       <span>{label}</span>
       <span className="flex gap-0.5" aria-hidden="true">
         {[1, 2, 3].map((level) => (
-          <i key={level} className={`h-1.5 w-2.5 rounded-full ${level <= value ? "bg-primary" : "bg-white/10"}`} />
+          <i key={level} className={`h-1.5 w-2.5 rounded-sm ${level <= value ? "bg-primary" : "bg-border"}`} />
         ))}
       </span>
     </span>
@@ -37,15 +37,13 @@ export function ProductionProfilePicker() {
   const incomplete = !defaultImageModel || !defaultVideoModel;
 
   return (
-    <section className="mt-4 rounded-xl border border-white/8 bg-white/[0.025] p-3.5" aria-labelledby="production-profile-title">
+    <section className="mt-4 border-t border-border pt-4" aria-labelledby="production-profile-title">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <div id="production-profile-title" className="flex items-center gap-2 text-xs font-semibold text-foreground">
             <Gauge className="size-3.5 text-primary" aria-hidden="true" />
             {t("profileTitle")}
-            <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[10px] font-medium text-primary">{t("profileSmartBadge")}</span>
           </div>
-          <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{t("profileDescription")}</p>
         </div>
         <Link href="/settings?tab=video" className="inline-flex min-h-6 shrink-0 items-center text-[11px] text-primary hover:underline">
           {t("profileFineTune")}
@@ -64,15 +62,15 @@ export function ProductionProfilePicker() {
               role="radio"
               aria-checked={selected}
               onClick={() => applyProductionProfile(id)}
-              className={`min-h-28 rounded-xl border p-3 text-left transition-[border-color,background-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 ${
+              className={`min-h-24 rounded-md border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 ${
                 selected
-                  ? "border-primary/70 bg-primary/10 shadow-[0_0_0_1px_rgba(139,92,246,0.18)]"
-                  : "border-white/8 bg-black/10 hover:border-white/20 hover:bg-white/[0.035]"
+                  ? "border-primary bg-accent"
+                  : "border-border bg-card hover:border-input"
               }`}
             >
               <span className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                  <span className={`grid size-7 place-items-center rounded-lg ${selected ? "bg-primary text-white" : "bg-white/6 text-muted-foreground"}`}>
+                  <span className="grid size-6 place-items-center text-muted-foreground">
                     <Icon className="size-3.5" aria-hidden="true" />
                   </span>
                   {t(`profile_${id}_name`)}
@@ -96,7 +94,7 @@ export function ProductionProfilePicker() {
       <div className="mt-3 flex flex-wrap items-stretch gap-1.5" aria-label={t("profilePipelineLabel")}>
         {pipeline.map((stage, index) => (
           <div key={stage.key} className="contents">
-            <div className="min-w-0 flex-1 basis-28 rounded-lg border border-white/6 bg-black/15 px-2.5 py-2">
+            <div className="min-w-0 flex-1 basis-28 border-l border-border pl-2.5 py-1">
               <div className="text-[10px] text-muted-foreground">{index + 1}. {t(stage.key)}</div>
               <div className="mt-0.5 truncate text-[11px] font-medium text-foreground" title={stage.value}>{stage.value}</div>
             </div>
@@ -106,7 +104,7 @@ export function ProductionProfilePicker() {
       </div>
 
       {incomplete && (
-        <p className="mt-2.5 text-[11px] text-amber-300/90">
+        <p className="mt-2.5 text-xs text-amber-700 dark:text-amber-300">
           {t("profileModelWarning")} <Link href="/settings?tab=providers" className="inline-flex min-h-6 items-center font-medium underline underline-offset-2">{t("profileConfigure")}</Link>
         </p>
       )}

@@ -5,7 +5,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LanguageToggle } from "@/components/language-toggle";
 import { TaskCenter } from "@/components/task-center";
+import { ThemeToggle } from "@/components/theme-controls";
+import { Clapperboard } from "lucide-react";
 import { useT } from "@/lib/i18n";
+import { APP_NAME } from "@/lib/brand";
 import { useSettingsStore } from "@/lib/stores/settings-store";
 import {
   DropdownMenu,
@@ -13,8 +16,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-/* eslint-disable @next/next/no-img-element -- the logo is a small local svg; next/image adds nothing here */
 
 interface NavItem {
   key: string;
@@ -143,7 +144,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       title={collapsed ? t(item.key) : undefined}
       className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${collapsed ? "justify-center px-0" : ""} ${
         active === item.href
-          ? "bg-primary/15 font-medium text-primary"
+          ? "bg-accent font-medium text-foreground"
           : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
       }`}
     >
@@ -155,16 +156,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Desktop sidebar */}
-      <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border/50 bg-background/60 transition-[width] md:flex ${collapsed ? "w-14" : "w-56"}`}>
+      <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] md:flex ${collapsed ? "w-14" : "w-52"}`}>
         <Link href="/start" className={`flex items-center gap-2.5 pb-4 pt-5 ${collapsed ? "justify-center px-0" : "px-4"}`}>
-          <img src="/icon.svg" alt="" width={30} height={30} className="rounded-[9px]" />
-          {!collapsed && <span className="text-base font-bold tracking-tight">ClipForge</span>}
+          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground text-background"><Clapperboard className="h-4 w-4" /></span>
+          {!collapsed && <span className="text-base font-semibold">{APP_NAME}</span>}
         </Link>
         <nav className={`flex-1 space-y-5 overflow-y-auto py-2 ${collapsed ? "px-2" : "px-3"}`}>
           {sections.map((section) => (
             <div key={section.labelKey} className="space-y-0.5">
               {!collapsed && (
-                <div className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                <div className="px-3 pb-2 text-xs font-medium text-muted-foreground">
                   {t(section.labelKey)}
                 </div>
               )}
@@ -201,15 +202,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             title={collapsed ? t("settings") : undefined}
             className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${collapsed ? "justify-center px-0" : ""} ${
               settingsActive
-                ? "bg-primary/15 font-medium text-primary"
+                ? "bg-accent font-medium text-foreground"
                 : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
             }`}
           >
             <NavIcon name="gear" />
             {!collapsed && t("settings")}
           </Link>
-          <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between px-1.5"}`}>
+          <div className={`flex items-center ${collapsed ? "flex-col gap-1" : "justify-between px-1.5"}`}>
             {!collapsed && <LanguageToggle />}
+            <ThemeToggle />
             <button
               type="button"
               onClick={toggleCollapsed}
@@ -225,14 +227,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Content column; mobile gets a slim top bar with a menu */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-50 flex h-12 items-center justify-between border-b border-border/50 bg-background/80 px-4 backdrop-blur-xl md:hidden">
+        <header className="sticky top-0 z-50 flex h-12 items-center justify-between border-b border-border bg-sidebar px-4 md:hidden">
           <Link href="/start" className="flex items-center gap-2">
-            <img src="/icon.svg" alt="" width={24} height={24} className="rounded-[7px]" />
-            <span className="text-sm font-bold tracking-tight">ClipForge</span>
+            <Clapperboard className="h-5 w-5" />
+            <span className="text-sm font-semibold">{APP_NAME}</span>
           </Link>
           <div className="flex items-center gap-1">
             <TaskCenter collapsed />
             <LanguageToggle />
+            <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label={t("navMenu")}

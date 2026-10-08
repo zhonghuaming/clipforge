@@ -13,7 +13,7 @@ import { ProjectStepper } from "@/components/project-stepper";
  */
 export function ProjectHeader({ projectName }: { projectName?: string }) {
   return (
-    <div className="sticky top-12 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl md:top-0">
+    <div className="sticky top-12 z-40 border-b border-border bg-card md:top-0">
       <div className="mx-auto flex h-12 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
         <span className="min-w-0 truncate text-sm font-medium text-muted-foreground">
           {projectName ?? ""}

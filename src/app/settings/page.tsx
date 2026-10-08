@@ -421,13 +421,10 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen grid-bg">
-      <main className="mx-auto max-w-4xl px-6 py-10">
+      <main className="settings-workspace mx-auto max-w-5xl px-4 py-6 sm:px-8">
         {/* page title */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight">{t("pageTitle")}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {t("pageSubtitle")}
-          </p>
+        <div className="mb-6 border-b border-border pb-5">
+          <h1 className="text-2xl font-semibold">{t("pageTitle")}</h1>
         </div>
 
         {/* configuration status banner: surfaces missing setup right at the top (the footer summary is easy to miss) */}
@@ -445,10 +442,11 @@ export default function SettingsPage() {
         )}
 
         {/* beginner one-click setup: a single Atlas Key auto-configures LLM/image-gen/video-gen/TTS, skipping manual item-by-item setup */}
-        <div className="mb-8 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+        {tab === "providers" && <details className="mb-6 border-b border-border pb-4">
+          <summary className="cursor-pointer text-sm font-medium">{locale === "zh" ? "Atlas Cloud 快速配置" : "Atlas Cloud quick setup"}</summary>
+          <div className="mt-4">
           <div className="flex items-center gap-2 mb-1">
-            <LuZap className="w-4 h-4 text-primary" />
-            <h2 className="font-semibold text-sm">{t("oneKeyTitle")}</h2>
+            <h2 className="font-medium text-sm">Atlas Cloud</h2>
           </div>
           <p className="text-xs text-muted-foreground mb-3">{t("oneKeyDesc")}</p>
           {atlasApplied ? (
@@ -474,12 +472,13 @@ export default function SettingsPage() {
           <a href={ATLAS_KEYS_URL} target="_blank" rel="noreferrer" className="inline-block mt-2 text-xs text-primary hover:underline">
             {t("oneKeyGetKey")}
           </a>
-        </div>
+          </div>
+        </details>}
 
         {/* tabs */}
         <div className="md:flex md:items-start md:gap-8">
           {/* Section rail: vertical on desktop (native settings-window feel), horizontal scroll on mobile */}
-          <nav className="mb-6 flex gap-1 overflow-x-auto md:sticky md:top-6 md:mb-0 md:w-44 md:shrink-0 md:flex-col">
+          <nav className="settings-tabs mb-4 flex gap-1 overflow-x-auto md:sticky md:top-6 md:mb-0 md:w-40 md:shrink-0 md:flex-col">
             {SETTINGS_SECTIONS.map((sec) => (
               <button
                 key={sec.id}
@@ -487,7 +486,7 @@ export default function SettingsPage() {
                 onClick={() => switchTab(sec.id)}
                 className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                   tab === sec.id
-                    ? "bg-primary/15 font-medium text-primary"
+                    ? "bg-accent font-medium text-foreground"
                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 }`}
               >
@@ -527,7 +526,7 @@ export default function SettingsPage() {
                         {/* provider info */}
                         <div className="flex items-start gap-3 flex-1 min-w-0">
                           <div
-                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${platform.iconBg} text-white shadow-lg`}
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
                           >
                             {platform.icon}
                           </div>

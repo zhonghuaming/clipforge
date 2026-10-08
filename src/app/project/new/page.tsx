@@ -651,15 +651,12 @@ export default function NewProjectPage() {
 
   return (
     <div className="min-h-screen grid-bg">
-      <main className="mx-auto max-w-2xl px-6 py-10">
+      <main className="product-project-form mx-auto max-w-6xl px-4 py-6 sm:px-8">
         {/* page title */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {t("pageTitlePrefix")}<span className="brand-gradient-text">{t("pageTitleAccent")}</span>
+        <div className="mb-2 border-b border-border pb-5">
+          <h1 className="text-2xl font-semibold">
+            {t("pageTitlePrefix")}{t("pageTitleAccent")}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1.5">
-            {t("pageSubtitle")}
-          </p>
         </div>
 
         {/* LLM not configured warning */}
@@ -675,10 +672,10 @@ export default function NewProjectPage() {
           </Link>
         )}
 
-        <div className="space-y-6">
+        <div className="project-create-layout">
           {/* step 1 — product source: upload / paste a link / one-tap example, all in ONE card
               (was three stacked cards competing for the same "where do I start" decision) */}
-          <Card className="glass-card">
+          <Card className="glass-card source-section">
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">

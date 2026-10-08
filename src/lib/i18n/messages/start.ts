@@ -23,7 +23,7 @@ export const start: NamespaceMessages = {
     linkProductFallback: "导入的商品",
     // 上传模式
     dropTitle: "拖入商品图，或点击上传",
-    dropSub: "JPG / PNG，最多 5 张 · 没素材？下面点个示例",
+    dropSub: "JPG / PNG，最多 5 张",
     imgAlt: "商品图",
     removeAria: "删除",
     productNamePlaceholder: "商品名称（必填，如：便携榨汁杯）",
@@ -31,10 +31,10 @@ export const start: NamespaceMessages = {
     // 一句话模式
     topicPlaceholder: "说个主题，如：3 个让租房变高级的小物 / 冬天必囤的护手霜",
     // 出片方式（免费/付费分水岭，费用与 Key 要求写在选项上）
-    genFree: "🆓 免费快剪",
-    genFreeDesc: "真实素材混剪 + 免费配音 · 全程 ¥0 · 约 2 分钟",
-    genAi: "✨ AI 生成成片",
-    genAiDesc: "AI 生成画面与口播大片 · 用你的模型 Key 按秒计费，单价随模型和分辨率差别很大，出片前会先给你预览并确认",
+    genFree: "素材剪辑",
+    genFreeDesc: "无视频生成费用",
+    genAi: "生成视频镜头",
+    genAiDesc: "按模型、时长和分辨率计费，提交前确认费用",
     // 带货形式（仅 AI 档出现）
     formLabel: "带货形式",
     form_auto: "智能推荐",
@@ -48,7 +48,7 @@ export const start: NamespaceMessages = {
     presenterLabel: "出镜主播",
     presenterAuto: "智能素人（默认）",
     // 生产方案：把底层模型参数包装成创作目标
-    profileTitle: "智能生产方案",
+    profileTitle: "制作参数",
     profileSmartBadge: "全链路",
     profileDescription: "一键配置清晰度、镜头时长、运镜、画面风格与镜头衔接；不会替换你已选的模型。",
     profileFineTune: "精调参数 →",
@@ -114,9 +114,9 @@ export const start: NamespaceMessages = {
     // 示例
     examplesLabel: "没素材，先试试",
     // 热点雷达（今天发什么）
-    trendsLabel: "🔥 今天发什么",
+    trendsLabel: "选题参考",
     trendsRefresh: "换一批",
-    trendsSourceNote: "点一个热点直接写成视频 · 实时数据来自{source}，约 10 分钟更新",
+    trendsSourceNote: "数据来源：{source}，每 10 分钟更新",
     trendsSourceDouyin: "抖音热搜",
     trendsSourceToutiao: "今日头条热榜",
     // 热点类目筛选
@@ -135,7 +135,7 @@ export const start: NamespaceMessages = {
     trendCloneLabel: "同款",
     trendCloneAria: "去爆款复刻做这个热点的同款",
     // 日更 · 按人设选题
-    dailyLabel: "📅 日更 · 按人设选题",
+    dailyLabel: "人设选题",
     dailyPersonaPlaceholder: "人设关键词，如：美妆 护肤 好物",
     dailyPick: "出今日一条",
     dailyPickedMatched: "已按人设选中「{topic}」，点「开始生成」直接出片",
@@ -183,7 +183,7 @@ export const start: NamespaceMessages = {
     linkProductFallback: "Imported product",
     // 上传模式
     dropTitle: "Drop a product photo, or click to upload",
-    dropSub: "JPG / PNG, up to 5 · No assets? Pick an example below",
+    dropSub: "JPG / PNG, up to 5 images",
     imgAlt: "Product photo",
     removeAria: "Remove",
     productNamePlaceholder: "Product name (required, e.g. Portable juicer cup)",
@@ -191,10 +191,10 @@ export const start: NamespaceMessages = {
     // 一句话模式
     topicPlaceholder: "Type a topic, e.g. 3 small things that make a rental feel upscale / must-stock hand creams for winter",
     // 出片方式（免费/付费分水岭，费用与 Key 要求写在选项上）
-    genFree: "🆓 Free quick cut",
-    genFreeDesc: "Real stock footage + free voice-over · $0 end to end · ~2 min",
-    genAi: "✨ AI-generated film",
-    genAiDesc: "AI visuals & spoken lines · billed to your own model key by the second; rates vary widely by model and resolution, and you confirm a preview before anything is charged",
+    genFree: "Stock footage edit",
+    genFreeDesc: "No video generation charges",
+    genAi: "Generate video clips",
+    genAiDesc: "Priced by model, duration and resolution. Confirm costs before submitting.",
     // 带货形式（仅 AI 档出现）
     formLabel: "Format",
     form_auto: "Smart pick",
@@ -208,7 +208,7 @@ export const start: NamespaceMessages = {
     presenterLabel: "Presenter",
     presenterAuto: "Smart casting (default)",
     // Production strategy: creator goals mapped to underlying model controls
-    profileTitle: "Smart production strategy",
+    profileTitle: "Production settings",
     profileSmartBadge: "Full pipeline",
     profileDescription: "One click configures resolution, shot length, motion, visual look and continuity without replacing your selected models.",
     profileFineTune: "Fine-tune →",
@@ -274,9 +274,9 @@ export const start: NamespaceMessages = {
     // 示例
     examplesLabel: "No assets? Try one",
     // 热点雷达（今天发什么）
-    trendsLabel: "🔥 What to post today",
+    trendsLabel: "Topic ideas",
     trendsRefresh: "Shuffle",
-    trendsSourceNote: "Tap a trend and turn it into a video · live data from {source}, refreshed ~10 min",
+    trendsSourceNote: "Source: {source}. Updated every 10 minutes.",
     trendsSourceDouyin: "Douyin trending",
     trendsSourceToutiao: "Toutiao hot board",
     // 热点类目筛选
@@ -295,7 +295,7 @@ export const start: NamespaceMessages = {
     trendCloneLabel: "Remix",
     trendCloneAria: "Clone a viral video for this trend",
     // 日更 · 按人设选题
-    dailyLabel: "📅 Daily · pick by persona",
+    dailyLabel: "Persona topics",
     dailyPersonaPlaceholder: "Persona keywords, e.g. beauty skincare finds",
     dailyPick: "Pick today's one",
     dailyPickedMatched: "Picked “{topic}” for your persona — hit “Start generating” to make it",

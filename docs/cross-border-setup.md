@@ -1,4 +1,4 @@
-# Cross-border TikTok workflow
+# ReelDesk cross-border TikTok workflow
 
 This fork runs locally and uses the existing ClipForge project, asset, composition, and export workflow.
 

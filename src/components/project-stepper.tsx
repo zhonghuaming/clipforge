@@ -40,8 +40,8 @@ export function ProjectStepper() {
   return (
     <>
       {/* mobile: full step pills don't fit, show a compact "current step / total" badge instead */}
-      <div className="sm:hidden flex h-7 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground">
-        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[10px]">
+      <div className="sm:hidden flex h-8 items-center gap-1.5 rounded-md bg-accent px-3 text-xs font-medium text-accent-foreground">
+        <span className="flex h-4 w-4 items-center justify-center rounded-sm bg-muted text-[10px]">
           {current + 1}
         </span>
         {t(STEPS[current].key)}
@@ -53,9 +53,9 @@ export function ProjectStepper() {
           <div key={step.key} className="flex items-center">
             <Link
               href={`/project/${id}/${step.path}`}
-              className={`flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors ${
+              className={`flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors ${
                 i === current
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-accent text-foreground"
                   : i < current
                   ? "text-primary hover:bg-primary/10"
                   : "text-muted-foreground hover:bg-muted/50"
@@ -63,7 +63,7 @@ export function ProjectStepper() {
             >
               <span
                 className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${
-                  i === current ? "bg-white/20" : i < current ? "bg-primary/20" : "bg-muted"
+                  i === current ? "bg-muted" : i < current ? "bg-primary/20" : "bg-muted"
                 }`}
               >
                 {i < current ? "✓" : i + 1}

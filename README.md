@@ -1,6 +1,8 @@
-<p align="center"><img src="docs/banner.png" alt="ClipForge — 开源 AI 带货短视频神器，一张商品图自动产出抖音小店/快手/小红书/TikTok Shop 卖货短视频" width="820"/></p>
+# ReelDesk
 
-# ClipForge — 开源 AI 带货短视频神器 ｜ 一张商品图，自动出卖货视频
+商品素材、视频镜头与多语言成片的本地制作工作台。支持明亮、深色和跟随系统主题。
+
+基于 [xixihhhh/clipforge](https://github.com/xixihhhh/clipforge) 开发，保留原作者署名及 AGPL-3.0 许可。以下保留原项目功能与使用说明。
 
 > 本 fork 的跨境 TikTok + GLM-5.3 + MiniMax H3 官方 API 配置见 [本地运行说明](docs/cross-border-setup.md)。
 

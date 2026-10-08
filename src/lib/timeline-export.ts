@@ -1,4 +1,5 @@
 import { basename } from "path";
+import { APP_NAME } from "@/lib/brand";
 import { normalizeTimeRanges, outputDuration, type TimeRange } from "@/lib/transcript-editor";
 
 export type TimelineExportFormat = "otio" | "edl" | "csv";
@@ -216,7 +217,7 @@ export function buildOtioTimeline(input: TimelineExportInput): string {
         captionCues: captionCues.map((cue) => ({ ...cue })),
       },
     },
-    name: input.projectName || "ClipForge edit",
+    name: input.projectName || `${APP_NAME} edit`,
     markers: beatMarkers.map((marker) => otioMarker(marker, rate)),
     tracks: {
       OTIO_SCHEMA: "Stack.1",

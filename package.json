@@ -62,7 +62,7 @@
   },
   "build": {
     "appId": "com.clipforge.app",
-    "productName": "ClipForge",
+    "productName": "ReelDesk",
     "npmRebuild": false,
     "compression": "maximum",
     "directories": {

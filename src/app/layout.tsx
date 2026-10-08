@@ -6,15 +6,17 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { LocaleInitializer } from "@/components/locale-initializer";
 import { AppShell } from "@/components/app-shell";
+import { ThemeInitializer } from "@/components/theme-controls";
+import { APP_NAME } from "@/lib/brand";
 
 const geistSans = GeistSans;
 const geistMono = GeistMono;
 
 export const metadata: Metadata = {
-  // Title/description are bilingual (Chinese first): prioritize domestic traffic while covering overseas search indexing
-  title: "ClipForge — AI 短视频带货创作工具 | AI Short Video Creator",
+  title: `${APP_NAME} | 电商视频工作台`,
+  applicationName: APP_NAME,
   description:
-    "一句话主题或一张商品图，一键产出抖音 / 快手 / 小红书 / TikTok 竖屏带货短视频：AI 写脚本、自动配画面、免费配音、烧字幕。Turn one sentence or a product photo into a vertical short video — AI script, free stock footage, voiceover & subtitles in one click.",
+    "商品素材、视频镜头与多语言成片的本地制作工作台。A local workspace for product video production, review and export.",
   keywords: [
     "AI 短视频",
     "带货短视频",
@@ -34,13 +36,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Site-wide default dark studio theme: pin the dark class on <html>
   return (
     <html
       lang="zh-CN"
-      className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: "try{var m=JSON.parse(localStorage.getItem('clipforge-theme')||'{}').state?.mode;document.documentElement.classList.toggle('dark',m==='dark'||(m==='system'&&matchMedia('(prefers-color-scheme: dark)').matches))}catch{}" }} />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        <ThemeInitializer />
         <LocaleInitializer />
         <AppShell>{children}</AppShell>
       </body>
