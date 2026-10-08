@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createProvider } from "@/lib/providers";
 import type { CatalogProvider, ModelCatalogStatus } from "@/lib/model-catalog";
-import type { Model } from "@/lib/providers/types";
+import type { AIProvider, Model } from "@/lib/providers/types";
+import { MiniMaxH3Provider } from "@/lib/providers/minimax-h3";
 
 export async function POST(req: NextRequest) {
   let body;
@@ -17,7 +18,9 @@ export async function POST(req: NextRequest) {
     const started = Date.now();
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      const provider = createProvider({ name: p.name, apiKey: p.apiKey ?? "", baseUrl: p.baseUrl ?? "", timeout: 10_000 });
+      const provider: AIProvider = p.name === "minimax-h3"
+        ? new MiniMaxH3Provider({ name: p.name, apiKey: "catalog", baseUrl: "" })
+        : createProvider({ name: p.name, apiKey: p.apiKey ?? "", baseUrl: p.baseUrl ?? "", timeout: 10_000 });
       const models = await Promise.race([
         provider.listModels(type, { refresh: body.refresh === true }),
         new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("CATALOG_TIMEOUT")), 12_000); }),

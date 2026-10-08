@@ -113,6 +113,8 @@ export default function NewProjectPage() {
 
   // form state
   const [productName, setProductName] = useState("");
+  const [targetMarket, setTargetMarket] = useState("US");
+  const [targetLanguage, setTargetLanguage] = useState("en-US");
   const [category, setCategory] = useState<string>("");
   const [sellingPoints, setSellingPoints] = useState("");
   const [duration, setDuration] = useState("30");
@@ -123,7 +125,7 @@ export default function NewProjectPage() {
   // additional field state
   const [priceRange, setPriceRange] = useState<string>("");
   const [targetAudience, setTargetAudience] = useState<string[]>([]);
-  const [platforms, setPlatforms] = useState<string[]>(["douyin"]);
+  const [platforms, setPlatforms] = useState<string[]>(["tiktok"]);
   const [usageAdvantage, setUsageAdvantage] = useState("");
 
   // multi-select toggle helpers
@@ -323,6 +325,8 @@ export default function NewProjectPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productName,
+          targetMarket,
+          targetLanguage,
           category,
           sellingPoints,
           llmConfig: { baseUrl: llm.baseUrl, apiKey: llm.apiKey, model: llm.model },
@@ -475,7 +479,9 @@ export default function NewProjectPage() {
   }, [libraryProducts, prefillFromProduct]);
 
   // form validation
-  const isValid = productName.trim().length > 0 && images.length >= 1;
+  const isValid = productName.trim().length > 0 && images.length >= 1
+    && /^[A-Z]{2}$/.test(targetMarket)
+    && /^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(targetLanguage);
 
   // summary badge for the folded templates drawer: surfaces what's currently applied while closed
   const pickedAdTpl = resolveAdTemplate(selectedAdTemplateId);
@@ -528,6 +534,8 @@ export default function NewProjectPage() {
           name: `${productName} 推广`,
           productName,
           productCategory: category,
+          targetMarket,
+          targetLanguage,
           productDescription: sellingPoints,
           productImages: [],
         }),
@@ -593,6 +601,8 @@ export default function NewProjectPage() {
           category,
           productDescription: sellingPoints,
           targetDuration: parseInt(duration),
+          targetMarket,
+          targetLanguage,
           styleType: scriptStyle,
           videoMode,
           productImages: paths,
@@ -812,6 +822,20 @@ export default function NewProjectPage() {
                   onChange={(e) => setProductName(e.target.value)}
                   className="bg-muted/30 border-border/50 focus:border-primary"
                 />
+              </div>
+
+              {/* product selling points */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="targetMarket" className="text-sm font-medium">{locale === "zh" ? "目标市场" : "Target market"}</Label>
+                  <Input id="targetMarket" value={targetMarket} maxLength={2} onChange={(e) => setTargetMarket(e.target.value.toUpperCase())} placeholder="US" aria-describedby="market-hint" />
+                  <p id="market-hint" className="text-xs text-muted-foreground">{locale === "zh" ? "两位国家代码，如 US、MX、GB" : "Two-letter country code, such as US, MX, GB"}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="targetLanguage" className="text-sm font-medium">{locale === "zh" ? "视频语言" : "Video language"}</Label>
+                  <Input id="targetLanguage" value={targetLanguage} onChange={(e) => setTargetLanguage(e.target.value)} placeholder="en-US" aria-describedby="language-hint" />
+                  <p id="language-hint" className="text-xs text-muted-foreground">{locale === "zh" ? "语言代码，如 en-US、es-MX、fr" : "Language code, such as en-US, es-MX, fr"}</p>
+                </div>
               </div>
 
               {/* product selling points */}

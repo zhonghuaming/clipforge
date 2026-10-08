@@ -12,6 +12,7 @@
  */
 
 import type { TTSProvider } from "./tts-presets";
+import { resolveMiniMaxKey } from "@/lib/server-managed-credentials";
 import { CircuitBreaker } from "@/lib/circuit-breaker";
 import { ttsCacheKey, readTtsCache, writeTtsCache } from "@/lib/tts-cache";
 import { stripPauseMarks } from "@/lib/voice-markup";
@@ -95,6 +96,7 @@ async function withTTSRetry(fn: () => Promise<Buffer>): Promise<Buffer> {
 }
 
 export async function generateSpeech(text: string, config: TTSConfig): Promise<Buffer> {
+  if (config.provider === "minimax") config = { ...config, apiKey: resolveMiniMaxKey(config.apiKey) };
   // paid engines would try to SPEAK the [pause] breath marker — only the free Edge
   // path renders it (as a real SSML break); everyone else gets clean text
   const clean = stripPauseMarks((text || "").trim());

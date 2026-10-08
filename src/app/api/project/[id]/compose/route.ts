@@ -179,8 +179,10 @@ export async function POST(
     // 已生成的素材（assets 表，按 shotId 索引）
     const assetRows = await db.select().from(assetsTable).where(and(eq(assetsTable.projectId, id), eq(assetsTable.selected, true)));
     const assetByShot = new Map<number, string>();
+    const assetProviderByShot = new Map<number, string>();
     for (const a of assetRows) {
       if (a.filePath) assetByShot.set(a.shotId, a.filePath);
+      if (a.provider) assetProviderByShot.set(a.shotId, a.provider);
     }
 
     // 可选 TTS 配音配置（前端从设置带入）
@@ -265,6 +267,7 @@ export async function POST(
           try {
             audio = await generateSpeech(text, { ...ttsConfig, ...expressive });
           } catch (e) {
+            if (project.targetMarket && project.targetLanguage) throw e;
             console.warn(`分镜 ${shotId} 付费配音失败，回退免费 Edge 配音:`, e);
             composeWarnings.push({ code: "tts_fallback_free", shotId });
             const d = await generateSpeechFreeDetailed(text, freeOpts);
@@ -280,6 +283,7 @@ export async function POST(
         await writeFile(file, audio);
         return { file, words };
       } catch (e) {
+        if (project.targetMarket && project.targetLanguage) throw e;
         console.warn(`分镜 ${shotId} 配音生成失败（已跳过）:`, e);
         composeWarnings.push({ code: "tts_failed", shotId });
         return undefined;
@@ -364,7 +368,7 @@ export async function POST(
           continue;
         }
       }
-      const nativeAudio = isVideo ? await videoHasAudio(local) : false;
+      const nativeAudio = isVideo && assetProviderByShot.get(shot.shotId) !== "minimax-h3" ? await videoHasAudio(local) : false;
       const vo =
         shot.voiceover && !nativeAudio
           ? await buildVoiceover(shot.shotId, shot.voiceover, shot.characterId ? characterVoices.get(shot.characterId) : undefined, shot.type)

@@ -80,6 +80,7 @@ export async function POST(
       model: body.model,
       prompt: body.prompt,
       generationPlan,
+      selected: body.provider === "minimax-h3" ? false : undefined,
     }));
   } catch (error) {
     console.error("保存素材失败:", error);

@@ -35,6 +35,8 @@ export async function POST(req: NextRequest) {
         name: body.name || "未命名项目",
         productName: body.productName,
         productCategory: body.productCategory,
+        targetMarket: typeof body.targetMarket === "string" && /^[A-Z]{2}$/.test(body.targetMarket) ? body.targetMarket : null,
+        targetLanguage: typeof body.targetLanguage === "string" && /^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(body.targetLanguage) ? body.targetLanguage : null,
         productDescription: body.productDescription,
         productImages: body.productImages || [],
         ...(videoMode && { videoMode }),

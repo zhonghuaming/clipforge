@@ -117,6 +117,13 @@ describe("buildUserPrompt", () => {
     expect(p).toContain("NOT in Chinese");
   });
 
+  it("中文商品投向墨西哥时，按明确指定的语言生成旁白", () => {
+    const prompt = buildUserPrompt({ ...baseInput, targetMarket: "MX", targetLanguage: "es-MX", platforms: "tiktok" });
+    expect(prompt).toContain("Target market: MX");
+    expect(prompt).toContain("voiceover");
+    expect(prompt).toContain("es-MX");
+  });
+
   it("中文商品：不追加英文语言指令（默认中文不变）", () => {
     expect(buildUserPrompt(baseInput)).not.toContain("NOT in Chinese");
   });

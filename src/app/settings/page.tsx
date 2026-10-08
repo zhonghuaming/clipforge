@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { LuUpload, LuPalette, LuZap, LuCheck, LuTriangleAlert } from "react-icons/lu";
+import { LuUpload, LuPalette, LuZap, LuCheck, LuTriangleAlert, LuVideo } from "react-icons/lu";
 import { ATLAS_KEYS_URL } from "@/lib/atlas-onekey";
 import { useT } from "@/lib/i18n";
 import { useSettingsStore } from "@/lib/stores/settings-store";
@@ -250,6 +250,7 @@ export default function SettingsPage() {
   const t = useT("settings");
   // read settings from store
   const {
+    locale,
     providers,
     llm,
     tts,
@@ -301,6 +302,10 @@ export default function SettingsPage() {
 
   // AI platform key connectivity test (real auth probe, not a fake test)
   const [providerTest, setProviderTest] = useState<Record<string, { state: "idle" | "testing" | "ok" | "invalid" | "unknown"; msg?: string }>>({});
+  const [localCredentials, setLocalCredentials] = useState({ zai: false, minimax: false });
+  useEffect(() => {
+    fetch("/api/local-credentials").then((response) => response.json()).then(setLocalCredentials).catch(() => {});
+  }, []);
   const testProvider = async (key: string) => {
     const p = providers[key];
     if (!p?.apiKey) return;
@@ -495,6 +500,20 @@ export default function SettingsPage() {
           {tab === "providers" && (
           <section className="min-w-0 flex-1">
             <div className="space-y-4">
+              <Card className="glass-card">
+                <CardContent className="p-5 flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-700 text-white"><LuVideo className="h-5 w-5" /></div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-sm">MiniMax H3 Official</h3>
+                      <p className="text-xs text-muted-foreground mt-1">{localCredentials.minimax
+                        ? (locale === "zh" ? "本机密钥已配置，按官方 API 生成视频" : "Local key configured; video uses the official API")
+                        : (locale === "zh" ? "在 .env.local 配置 MINIMAX_API_KEY 后可生成" : "Set MINIMAX_API_KEY in .env.local to generate")}</p>
+                    </div>
+                  </div>
+                  <Toggle checked={providers["minimax-h3"]?.enabled ?? false} onChange={(enabled) => setProvider("minimax-h3", { enabled, apiKey: "server-managed" })} />
+                </CardContent>
+              </Card>
               {AI_PROVIDERS.map((platform) => {
                 const provider = providers[platform.key] ?? {
                   enabled: false,
@@ -628,7 +647,7 @@ export default function SettingsPage() {
                       {LLM_PRESETS.map((preset) => (
                         <button
                           key={preset.label}
-                          onClick={() => setLLM({ ...llm, baseUrl: preset.baseUrl, model: preset.model, visionModel: preset.model, ...(preset.apiKey ? { apiKey: preset.apiKey } : {}) })}
+                          onClick={() => setLLM({ ...llm, baseUrl: preset.baseUrl, model: preset.model, visionModel: preset.serverManaged ? "glm-5.3-flash" : preset.model, ...(preset.serverManaged ? { apiKey: "server-managed" } : preset.apiKey ? { apiKey: preset.apiKey } : {}) })}
                           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs border border-border/50 bg-background hover:border-primary/40 hover:text-primary transition-colors"
                         >
                           {preset.label}
@@ -661,11 +680,11 @@ export default function SettingsPage() {
                       <Label className="text-xs text-muted-foreground">
                         {t("apiKeyLabel")}
                       </Label>
-                      <PasswordInput
-                        value={llm.apiKey}
-                        onChange={(apiKey) => setLLM({ ...llm, apiKey })}
-                        placeholder={t("llmApiKeyPlaceholder")}
-                      />
+                      {llm.apiKey === "server-managed" ? (
+                        <p className={`text-xs ${localCredentials.zai ? "text-emerald-500" : "text-amber-500"}`}>
+                          {localCredentials.zai ? (locale === "zh" ? "ZAI_API_KEY 已在本机配置" : "ZAI_API_KEY configured locally") : (locale === "zh" ? "请在 .env.local 配置 ZAI_API_KEY" : "Set ZAI_API_KEY in .env.local")}
+                        </p>
+                      ) : <PasswordInput value={llm.apiKey} onChange={(apiKey) => setLLM({ ...llm, apiKey })} placeholder={t("llmApiKeyPlaceholder")} />}
                       {/* Pollinations 已改为「注册领每日免费额度」，直接把领 Key 的地址摆在输入框下面 */}
                       {/pollinations\.ai/i.test(llm.baseUrl) && (
                         <p className="text-xs text-muted-foreground">
@@ -853,7 +872,11 @@ export default function SettingsPage() {
                           {ttsMeta.keySource === "tts" ? (
                             <div className="space-y-1.5">
                               <Label className="text-xs text-muted-foreground">{t("apiKeyLabel")}</Label>
-                              <PasswordInput value={tts.apiKey} onChange={(apiKey) => setTTS({ ...tts, apiKey })} placeholder={t("ttsApiKeyPlaceholderShort")} />
+                              {tts.provider === "minimax" && tts.apiKey === "server-managed" ? (
+                                <p className={`text-xs ${localCredentials.minimax ? "text-emerald-500" : "text-amber-500"}`}>
+                                  {localCredentials.minimax ? "MINIMAX_API_KEY configured locally" : "Set MINIMAX_API_KEY in .env.local"}
+                                </p>
+                              ) : <PasswordInput value={tts.apiKey} onChange={(apiKey) => setTTS({ ...tts, apiKey })} placeholder={t("ttsApiKeyPlaceholderShort")} />}
                             </div>
                           ) : (
                             <div className="text-xs rounded-md border border-border/60 bg-muted/20 px-3 py-2">
@@ -902,6 +925,13 @@ export default function SettingsPage() {
                               </Select>
                             </div>
                           </div>
+                          {tts.provider === "minimax" && (
+                            <div className="mt-3 space-y-1.5">
+                              <Label htmlFor="minimax-voice-id" className="text-xs text-muted-foreground">{locale === "zh" ? "自定义音色 ID" : "Custom voice ID"}</Label>
+                              <Input id="minimax-voice-id" value={tts.voice} onChange={(e) => setTTS({ ...tts, voice: e.target.value })} className="font-mono text-xs" placeholder="voice_id" />
+                              <p className="text-xs text-muted-foreground">{locale === "zh" ? "按目标语言选择支持该语言的音色，生成前先试听。" : "Choose a voice that supports the target language and preview it before generation."}</p>
+                            </div>
+                          )}
                         </>
                       )}
 

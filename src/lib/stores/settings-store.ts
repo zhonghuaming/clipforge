@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
-import { DEFAULT_TTS_PROVIDER, type TTSProvider } from "@/lib/tts-presets";
+import type { TTSProvider } from "@/lib/tts-presets";
+import { SERVER_MANAGED_KEY, ZAI_BASE_URL } from "@/lib/server-managed-credentials";
 import {
   DEFAULT_IMAGE_PARAMS,
   DEFAULT_VIDEO_PARAMS,
@@ -133,6 +134,11 @@ const POLLINATIONS_BASE_URL = "https://gen.pollinations.ai/v1";
  * 只监听 127.0.0.1，用户会看到一个无从排查的"连不上"（issue #19 追问）。同端口同机，改写无副作用。
  */
 export function migrateSettings(state: SettingsState): SettingsState {
+  state.providers = {
+    ...state.providers,
+    "minimax-h3": state.providers?.["minimax-h3"] ?? { enabled: true, apiKey: SERVER_MANAGED_KEY },
+  };
+  if (!state.defaultVideoModel) state.defaultVideoModel = "MiniMax-H3";
   const llm = state?.llm;
   if (llm?.baseUrl) {
     const fixes: Array<{ hostRe: RegExp; from: string; to: string }> = [
@@ -172,6 +178,7 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       providers: {
+        "minimax-h3": { enabled: true, apiKey: SERVER_MANAGED_KEY },
         "atlas-cloud": { enabled: false, apiKey: "" },
         "fal-ai": { enabled: false, apiKey: "" },
         replicate: { enabled: false, apiKey: "" },
@@ -181,23 +188,23 @@ export const useSettingsStore = create<SettingsState>()(
         openai: { enabled: false, apiKey: "" },
       },
       llm: {
-        provider: "",
-        baseUrl: "",
-        apiKey: "",
-        model: "",
-        visionModel: "",
+        provider: "Z.AI",
+        baseUrl: ZAI_BASE_URL,
+        apiKey: SERVER_MANAGED_KEY,
+        model: "glm-5.3",
+        visionModel: "glm-5.3-flash",
       },
       tts: {
-        enabled: false,
-        provider: DEFAULT_TTS_PROVIDER,
-        baseUrl: "",
-        apiKey: "",
-        model: "",
-        voice: "",
+        enabled: true,
+        provider: "minimax",
+        baseUrl: "https://api.minimax.io/v1",
+        apiKey: SERVER_MANAGED_KEY,
+        model: "speech-2.6-hd",
+        voice: "female-tianmei",
         speed: 1,
       },
       defaultImageModel: "",
-      defaultVideoModel: "",
+      defaultVideoModel: "MiniMax-H3",
       defaultResolution: "720p",
       // a per-run ceiling, on by default: an unattended run used to be able to spend
       // whatever the model charged, with no figure shown beforehand (issue #28)
@@ -283,7 +290,7 @@ export const useSettingsStore = create<SettingsState>()(
       // v4：补充面向创作目标的生产方案；旧设置迁移到兼顾质量与成本的 balanced。
       // v5：Atlas 一键接入曾把「素材网关」/api/v1 写进 LLM 地址，导致写脚本必 404（issue #24），
       // 迁到 OpenAI 兼容的聊天网关 /v1。
-      version: 5,
+      version: 6,
       migrate: (persisted) => migrateSettings(persisted as SettingsState),
     }
   )

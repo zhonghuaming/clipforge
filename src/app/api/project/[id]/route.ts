@@ -14,6 +14,8 @@ const SAFE_ID = /^[a-zA-Z0-9-]+$/;
 const PATCHABLE_FIELDS = [
   "name",
   "productName",
+  "targetMarket",
+  "targetLanguage",
   "productCategory",
   "productDescription",
   "productImages",
@@ -85,6 +87,12 @@ export async function PATCH(
     // Validate that the status value is a legal enum member
     if ("status" in updates && !VALID_STATUS.has(String(updates.status))) {
       return apiError(req, "非法的项目状态值", "Invalid project status value", 400);
+    }
+    if ("targetMarket" in updates && (typeof updates.targetMarket !== "string" || !/^[A-Z]{2}$/.test(updates.targetMarket))) {
+      return apiError(req, "市场代码必须是两个大写字母", "Market must be a two-letter country code", 400);
+    }
+    if ("targetLanguage" in updates && (typeof updates.targetLanguage !== "string" || !/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(updates.targetLanguage))) {
+      return apiError(req, "语言代码无效", "Invalid language code", 400);
     }
 
     if (Object.keys(updates).length === 0) {

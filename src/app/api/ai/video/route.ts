@@ -5,6 +5,7 @@ import { toRemoteUsableImage, resolveUploadFilePath } from "@/lib/remote-image";
 import { apiError, errText } from "@/lib/api-error";
 import { recordAiTask, updateAiTask } from "@/lib/ai-tasks";
 import { sanitizeGenerationControlSummary } from "@/lib/video-repair-plan";
+import { estimateH3Cost } from "@/lib/h3-pricing";
 
 // AI video generation.
 //
@@ -109,6 +110,7 @@ export async function POST(req: NextRequest) {
       mode: videoOptions.mode,
       prompt: videoOptions.prompt,
       taskId,
+      ...(providerName === "minimax-h3" && { estimatedCostCents: Math.round(estimateH3Cost(videoOptions).totalUsd * 100) }),
       ...(controlPlan && { controlPlan }),
     });
 
@@ -125,7 +127,10 @@ export async function POST(req: NextRequest) {
           { status: 502 }
         );
       }
-      await updateAiTask(rowId, { status: "completed", resultUrls: videoUrls, error: null });
+      const actualCostUsd = result && "extra" in result ? Number(result.extra?.actualCostUsd) : NaN;
+      await updateAiTask(rowId, { status: "completed", resultUrls: videoUrls, error: null,
+        ...(providerName === "minimax-h3" && Number.isFinite(actualCostUsd) ? { actualCostCents: Math.round(actualCostUsd * 100) } : {}),
+      });
       return NextResponse.json({
         taskId,
         videoUrls,
@@ -133,6 +138,8 @@ export async function POST(req: NextRequest) {
         duration: videoOptions.duration,
         processingTime: Date.now() - startTime,
         hasAudio: videoOptions.audioEnabled ?? false,
+        ...(providerName === "minimax-h3" ? { estimatedCostUsd: estimateH3Cost(videoOptions).totalUsd,
+          ...(Number.isFinite(actualCostUsd) ? { actualCostUsd } : {}) } : {}),
       });
     } catch (error) {
       // definitive provider-side failure vs. lost contact (task may still be running & billed)

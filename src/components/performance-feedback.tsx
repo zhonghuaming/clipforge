@@ -33,14 +33,15 @@ const HOOK_LABEL: Record<string, { zh: string; en: string }> = {
 
 const NUM_FIELDS = [
   { key: "views", zh: "播放", en: "Views" },
+  { key: "clicks", zh: "点击", en: "Clicks" },
   { key: "likes", zh: "点赞", en: "Likes" },
   { key: "comments", zh: "评论", en: "Comments" },
   { key: "shares", zh: "转发", en: "Shares" },
   { key: "orders", zh: "成交", en: "Orders" },
 ] as const;
 
-type FormState = { platform: string; hookId: string; views: string; likes: string; comments: string; shares: string; orders: string; note: string };
-const EMPTY: FormState = { platform: "douyin", hookId: "", views: "", likes: "", comments: "", shares: "", orders: "", note: "" };
+type FormState = { platform: string; market: string; language: string; hookId: string; views: string; clicks: string; likes: string; comments: string; shares: string; orders: string; note: string };
+const EMPTY: FormState = { platform: "tiktok", market: "", language: "", hookId: "", views: "", clicks: "", likes: "", comments: "", shares: "", orders: "", note: "" };
 
 export function PerformanceFeedback({ projectId }: { projectId: string }) {
   const locale = useLocale();
@@ -50,17 +51,28 @@ export function PerformanceFeedback({ projectId }: { projectId: string }) {
   const [hookInsights, setHookInsights] = useState<HookInsight[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [scope, setScope] = useState({ market: "", language: "" });
+  const [objective, setObjective] = useState<"orders" | "clicks" | "explore">("explore");
 
-  const loadInsights = useCallback(async () => {
+  const loadInsights = useCallback(async (market?: string, language?: string) => {
     try {
-      const r = await fetch("/api/insights/styles");
+      const query = new URLSearchParams({ projectId });
+      if (market && language) {
+        query.set("market", market);
+        query.set("language", language);
+      }
+      const r = await fetch(`/api/insights/styles?${query}`);
       const j = await r.json();
       setInsights(Array.isArray(j.insights) ? j.insights : []);
       setHookInsights(Array.isArray(j.hookInsights) ? j.hookInsights : []);
+      setObjective(j.recommendation?.objective ?? "explore");
+      setScope({ market: j.market ?? "", language: j.language ?? "" });
+      setForm((current) => ({ ...current, market: current.market || j.market || "", language: current.language || j.language || "" }));
     } catch {
       /* silent: an empty insights section is acceptable */
     }
-  }, []);
+  }, [projectId]);
   useEffect(() => {
     loadInsights();
   }, [loadInsights]);
@@ -69,15 +81,19 @@ export function PerformanceFeedback({ projectId }: { projectId: string }) {
     if (saving) return;
     setSaving(true);
     setSaved(false);
+    setSaveError("");
     try {
-      await fetch(`/api/project/${projectId}/metrics`, {
+      const response = await fetch(`/api/project/${projectId}/metrics`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+      if (!response.ok) throw new Error((await response.json()).error || (en ? "Save failed" : "保存失败"));
       setSaved(true);
-      setForm({ ...EMPTY, platform: form.platform });
-      loadInsights();
+      setForm({ ...EMPTY, platform: form.platform, market: form.market, language: form.language });
+      void loadInsights(form.market, form.language);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : (en ? "Save failed" : "保存失败"));
     } finally {
       setSaving(false);
     }
@@ -117,6 +133,14 @@ export function PerformanceFeedback({ projectId }: { projectId: string }) {
             </select>
           </label>
           <label className="flex flex-col gap-1">
+            <span className="text-[11px] text-muted-foreground">{en ? "Market" : "市场"}</span>
+            <Input value={form.market} maxLength={2} onChange={(e) => setForm({ ...form, market: e.target.value.toUpperCase() })} className="h-9 w-16" placeholder="US" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] text-muted-foreground">{en ? "Language" : "语言"}</span>
+            <Input value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value })} className="h-9 w-24" placeholder="en-US" />
+          </label>
+          <label className="flex flex-col gap-1">
             <span className="text-[11px] text-muted-foreground">{en ? "Hook" : "钩子"}</span>
             <select
               value={form.hookId}
@@ -151,15 +175,22 @@ export function PerformanceFeedback({ projectId }: { projectId: string }) {
             {saving ? (en ? "Saving…" : "保存中…") : saved ? (en ? "Saved" : "已保存") : en ? "Save" : "保存"}
           </Button>
         </div>
+        {saveError && <p role="alert" className="text-xs text-destructive mb-3">{saveError}</p>}
         <p className="text-[11px] text-muted-foreground mb-4">
-          {en ? "Tip: views is required; the script style is captured automatically." : "提示：「播放」必填；脚本风格会自动定格，无需手填。"}
+          {en ? "Views are required. Metrics are compared only within this market and language." : "播放量必填；推荐只比较同市场、同语言的数据。"}
+        </p>
+        <p className="text-xs text-muted-foreground mb-3">
+          {objective === "orders" ? (en ? "Recommendation based on orders per view" : "当前按成交率推荐")
+            : objective === "clicks" ? (en ? "Recommendation based on clicks per view; no order signal yet" : "当前按点击率推荐，暂无成交依据")
+              : (en ? "Exploring: at least two posts and 100 views per option are needed" : "探索中：每个候选至少需要 2 条视频和 100 次播放")}
+          {scope.market && scope.language ? ` · ${scope.market}/${scope.language}` : ""}
         </p>
 
         {/* aggregated insight: which style sells best */}
         {insights.length > 0 && (
           <div className="border-t border-border/50 pt-3">
             <p className="text-xs font-medium mb-2">
-              {en ? "Which style sells best (all projects)" : "哪种风格更能卖（全部项目）"}
+              {en ? "Styles in this market and language" : "当前市场和语言的脚本风格"}
             </p>
             <div className="space-y-1.5">
               {insights.map((it, i) => (
@@ -171,6 +202,7 @@ export function PerformanceFeedback({ projectId }: { projectId: string }) {
                   <span className="text-muted-foreground">
                     {en ? "conv." : "转化"} <b className={i === 0 ? "text-emerald-500" : ""}>{fmtPct(it.conversionRate)}</b>
                   </span>
+                  <span className="text-muted-foreground">{en ? "CTR" : "点击率"} {fmtPct(it.clickThroughRate)}</span>
                   <span className="text-muted-foreground">
                     {en ? "eng." : "互动"} {fmtPct(it.engagementRate)}
                   </span>
@@ -187,7 +219,7 @@ export function PerformanceFeedback({ projectId }: { projectId: string }) {
         {hookInsights.length > 0 && (
           <div className="border-t border-border/50 pt-3 mt-3">
             <p className="text-xs font-medium mb-2">
-              {en ? "Which hook sells best (all projects)" : "哪个钩子更能卖（全部项目）"}
+              {en ? "Hooks in this market and language" : "当前市场和语言的开场钩子"}
             </p>
             <div className="space-y-1.5">
               {hookInsights.map((it, i) => (
@@ -199,6 +231,7 @@ export function PerformanceFeedback({ projectId }: { projectId: string }) {
                   <span className="text-muted-foreground">
                     {en ? "conv." : "转化"} <b className={i === 0 ? "text-emerald-500" : ""}>{fmtPct(it.conversionRate)}</b>
                   </span>
+                  <span className="text-muted-foreground">{en ? "CTR" : "点击率"} {fmtPct(it.clickThroughRate)}</span>
                   <span className="text-muted-foreground">
                     {en ? "eng." : "互动"} {fmtPct(it.engagementRate)}
                   </span>

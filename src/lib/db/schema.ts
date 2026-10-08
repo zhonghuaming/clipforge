@@ -27,6 +27,8 @@ export const projects = sqliteTable("projects", {
   topic: text("topic"),
   productName: text("product_name"),
   productCategory: text("product_category"),
+  targetMarket: text("target_market"),
+  targetLanguage: text("target_language"),
   productDescription: text("product_description"),
   productPrice: text("product_price"), // Product price display text (e.g. "¥39.9" / "£63.00", mainly sourced from link ingest, used for product-card overlays)
   // Shop / affiliate link (2026 commerce monetization): the storefront URL the video drives buyers to,
@@ -81,7 +83,10 @@ export const publishMetrics = sqliteTable("publish_metrics", {
   hookId: text("hook_id"), // Hook mechanism id (= HookPattern.id), used for hook A/B feedback, nullable
   category: text("category"), // Product category (snapshotted)
   platform: text("platform"), // douyin/tiktok/kuaishou/xiaohongshu/...
+  market: text("market"),
+  language: text("language"),
   views: integer("views").notNull().default(0),
+  clicks: integer("clicks").notNull().default(0),
   likes: integer("likes").notNull().default(0),
   comments: integer("comments").notNull().default(0),
   shares: integer("shares").notNull().default(0),
@@ -167,6 +172,8 @@ export const aiTasks = sqliteTable("ai_tasks", {
   // unknown = client lost contact (poll timeout / restart); the cloud task may still be running
   status: text("status", { enum: ["submitted", "processing", "completed", "failed", "unknown"] }).notNull().default("submitted"),
   resultUrls: text("result_urls", { mode: "json" }).$type<string[]>(),
+  estimatedCostCents: integer("estimated_cost_cents"),
+  actualCostCents: integer("actual_cost_cents"),
   error: text("error"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),

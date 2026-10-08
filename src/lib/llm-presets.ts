@@ -17,9 +17,11 @@ export interface LLMPreset {
   tipKey?: string;
   /** placeholder key for keyless endpoints only */
   apiKey?: string;
+  serverManaged?: boolean;
 }
 
 export const LLM_PRESETS: LLMPreset[] = [
+  { label: "Z.AI GLM-5.3 (local key)", baseUrl: "https://api.z.ai/api/paas/v4", model: "glm-5.3", serverManaged: true },
   // DeepSeek V4 Pro: flagship writing quality with clean JSON output (real-request verified
   // 2026-08; the v3.2 default before it leaked thinking text into JSON and broke generation)
   { label: "Atlas Cloud", baseUrl: "https://api.atlascloud.ai/v1", model: "deepseek-ai/deepseek-v4-pro", tipKey: "presetAtlasTip" },

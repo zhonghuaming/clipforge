@@ -19,6 +19,7 @@
 
 import OpenAI, { APIConnectionError, APIConnectionTimeoutError } from "openai";
 import { listModels, modelListHint, normalizeChatBase } from "@/lib/llm-models";
+import { resolveZaiKey } from "@/lib/server-managed-credentials";
 
 /** Endpoint + model a call was aimed at (used to tailor the hint). */
 export interface LLMTarget {
@@ -212,7 +213,7 @@ export function createLLMClient(config: LLMClientConfig): OpenAI {
   return new OpenAI({
     // normalized so Atlas' media base pasted into the LLM field still reaches the chat gateway
     baseURL: config.baseUrl ? normalizeChatBase(config.baseUrl) : config.baseUrl,
-    apiKey: config.apiKey || "no-key",
+    apiKey: resolveZaiKey(config.baseUrl || "", config.apiKey || "") || "no-key",
     // SDK default is 2; free/shared endpoints flap enough to be worth one more attempt.
     maxRetries: 3,
     // Cap recovery and optional-param recovery apply everywhere (our params, our problem); the

@@ -28,6 +28,7 @@ export interface RecordAiTaskInput {
   mode?: string;
   prompt?: string;
   taskId: string;
+  estimatedCostCents?: number;
   controlPlan?: GenerationControlSummary;
 }
 
@@ -46,6 +47,7 @@ export async function recordAiTask(input: RecordAiTaskInput): Promise<string | n
         mode: input.mode ?? null,
         prompt: input.prompt ?? null,
         taskId: input.taskId,
+        estimatedCostCents: input.estimatedCostCents ?? null,
         controlPlan: input.controlPlan ?? null,
         status: "submitted",
       })
@@ -60,7 +62,7 @@ export async function recordAiTask(input: RecordAiTaskInput): Promise<string | n
 /** Update status/result of a task row (matched by row id) */
 export async function updateAiTask(
   rowId: string | null,
-  patch: { status?: AiTaskStatus; resultUrls?: string[]; error?: string | null }
+  patch: { status?: AiTaskStatus; resultUrls?: string[]; error?: string | null; actualCostCents?: number }
 ): Promise<void> {
   if (!rowId) return;
   try {
@@ -71,6 +73,7 @@ export async function updateAiTask(
         ...(patch.status && { status: patch.status }),
         ...(patch.resultUrls && { resultUrls: patch.resultUrls }),
         ...(patch.error !== undefined && { error: patch.error }),
+        ...(patch.actualCostCents !== undefined && { actualCostCents: patch.actualCostCents }),
         updatedAt: new Date(),
       })
       .where(eq(aiTasks.id, rowId));
@@ -83,7 +86,7 @@ export async function updateAiTask(
 export async function updateAiTaskByProviderTaskId(
   provider: string,
   taskId: string,
-  patch: { status?: AiTaskStatus; resultUrls?: string[]; error?: string | null }
+  patch: { status?: AiTaskStatus; resultUrls?: string[]; error?: string | null; actualCostCents?: number }
 ): Promise<void> {
   try {
     const db = getDb();
@@ -93,6 +96,7 @@ export async function updateAiTaskByProviderTaskId(
         ...(patch.status && { status: patch.status }),
         ...(patch.resultUrls && { resultUrls: patch.resultUrls }),
         ...(patch.error !== undefined && { error: patch.error }),
+        ...(patch.actualCostCents !== undefined && { actualCostCents: patch.actualCostCents }),
         updatedAt: new Date(),
       })
       .where(and(eq(aiTasks.provider, provider), eq(aiTasks.taskId, taskId)));

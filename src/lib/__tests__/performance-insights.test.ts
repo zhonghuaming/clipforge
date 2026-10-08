@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { aggregateByStyle, topConvertingStyle, aggregateByHook, topConvertingHook, buildPerformanceHint, type MetricInput } from "@/lib/performance-insights";
+import { aggregateByStyle, topConvertingStyle, aggregateByHook, topConvertingHook, buildPerformanceHint, metricsForMarket, recommendCommerceContent, type MetricInput } from "@/lib/performance-insights";
 
 const recs: MetricInput[] = [
   { style: "pain_point", views: 10000, likes: 500, comments: 100, shares: 50, orders: 80 },
@@ -34,6 +34,33 @@ describe("aggregateByStyle", () => {
     const agg = aggregateByStyle([{ style: "y", views: 100 }]);
     expect(agg[0].totalOrders).toBe(0);
     expect(agg[0].conversionRate).toBe(0);
+  });
+});
+
+describe("commerce decision", () => {
+  it("keeps outcomes from different markets and languages separate", () => {
+    const rows = [
+      { market: "US", language: "en-US", style: "scene", views: 1000, clicks: 80 },
+      { market: "MX", language: "es-MX", style: "story", views: 1000, clicks: 500 },
+      { market: "US", language: "es-US", style: "comparison", views: 1000, clicks: 400 },
+    ];
+    expect(metricsForMarket(rows, "US", "en-US").map((row) => row.style)).toEqual(["scene"]);
+    expect(metricsForMarket(rows, "MX", "es-MX").map((row) => row.style)).toEqual(["story"]);
+  });
+  it("uses orders when observed and clicks while exploring conversion", () => {
+    const base: MetricInput[] = [
+      { style: "scene", views: 1000, clicks: 90, orders: 0 },
+      { style: "scene", views: 1000, clicks: 90, orders: 0 },
+      { style: "story", views: 1000, clicks: 20, orders: 0 },
+      { style: "story", views: 1000, clicks: 20, orders: 0 },
+    ];
+    expect(recommendCommerceContent(base)).toMatchObject({ objective: "clicks", style: { style: "scene" } });
+    expect(recommendCommerceContent(base.map((record) => record.style === "story" ? { ...record, orders: 4 } : record))).toMatchObject({ objective: "orders", style: { style: "story" } });
+  });
+
+  it("does not promote a one-post outlier or zero-view record", () => {
+    expect(recommendCommerceContent([{ style: "scene", views: 10000, clicks: 1000, orders: 100 }])).toMatchObject({ objective: "explore", style: null });
+    expect(recommendCommerceContent([{ style: "scene", views: 0, clicks: 0 }, { style: "scene", views: 0, clicks: 0 }])).toMatchObject({ objective: "explore", style: null });
   });
 });
 
@@ -113,7 +140,7 @@ describe("buildPerformanceHint（数据飞轮·回流指令）", () => {
   it("转化率以百分比呈现（一位小数）", () => {
     // 220/20000 = 1.1%
     const hint = buildPerformanceHint(
-      { style: "s", samples: 2, avgViews: 10000, engagementRate: 0, conversionRate: 220 / 20000, totalOrders: 220 },
+      { style: "s", samples: 2, avgViews: 10000, engagementRate: 0, conversionRate: 220 / 20000, totalOrders: 220, clickThroughRate: 0, totalViews: 20000 },
       null
     );
     expect(hint).toContain("1.1%");

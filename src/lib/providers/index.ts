@@ -11,6 +11,8 @@ import { ReplicateProvider } from './replicate'
 import { AlibabaProvider } from './alibaba'
 import { SiliconFlowProvider } from './siliconflow'
 import { OpenAIProvider } from './openai'
+import { MiniMaxH3Provider } from './minimax-h3'
+import { resolveMiniMaxKey, SERVER_MANAGED_KEY } from '@/lib/server-managed-credentials'
 
 // ==================== Provider 注册表 ====================
 
@@ -26,6 +28,13 @@ function registerProvider(registration: ProviderRegistration): void {
 }
 
 // 注册所有内置 Provider
+registerProvider({
+  name: 'minimax-h3',
+  displayName: 'MiniMax H3 Official',
+  description: 'MiniMax H3 official image-to-video API',
+  factory: (config) => new MiniMaxH3Provider(config),
+})
+
 registerProvider({
   name: 'atlas-cloud',
   displayName: 'Atlas Cloud',
@@ -108,7 +117,9 @@ export function createProvider(config: ProviderConfig): AIProvider {
     )
   }
 
-  return registration.factory(config)
+  return registration.factory(config.name === 'minimax-h3'
+    ? { ...config, apiKey: resolveMiniMaxKey(SERVER_MANAGED_KEY) }
+    : config)
 }
 
 /**

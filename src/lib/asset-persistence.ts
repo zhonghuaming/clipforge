@@ -77,9 +77,10 @@ export interface SaveAssetCandidateInput {
   model?: string;
   prompt?: string;
   generationPlan?: GenerationControlSummary | null;
+  selected?: boolean;
 }
 
-/** Insert a validated take and atomically make it the active composition input. */
+/** Insert a validated take, optionally leaving selection to the reviewer. */
 export async function saveAssetCandidate(input: SaveAssetCandidateInput) {
   if (!SAFE_ID.test(input.projectId)) throw new Error("无效的项目ID");
   const db = getDb();
@@ -92,7 +93,7 @@ export async function saveAssetCandidate(input: SaveAssetCandidateInput) {
   }
   const generationPlan = input.generationPlan ? sanitizeGenerationControlSummary(input.generationPlan) : null;
   const rows = db.transaction((transaction) => {
-    transaction.update(assets).set({ selected: false }).where(and(eq(assets.projectId, input.projectId), eq(assets.shotId, input.shotId))).run();
+    if (input.selected !== false) transaction.update(assets).set({ selected: false }).where(and(eq(assets.projectId, input.projectId), eq(assets.shotId, input.shotId))).run();
     return transaction.insert(assets).values({
       projectId: input.projectId,
       shotId: input.shotId,
@@ -103,7 +104,7 @@ export async function saveAssetCandidate(input: SaveAssetCandidateInput) {
       model: input.model,
       prompt: input.prompt,
       generationPlan,
-      selected: true,
+      selected: input.selected !== false,
       status: "done",
     }).returning().all();
   });

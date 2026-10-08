@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
  * POST /api/project/[id]/metrics —— record one post-publish metrics entry.
  * style/category are frozen here (prefer the passed-in values; fall back to the project's latest script style / product category),
  * so future style-based aggregation is not contaminated by later edits.
- * body: { style?, category?, platform?, views?, likes?, comments?, shares?, orders?, note?, publishedAt? }
+ * body: { style?, category?, platform?, market?, language?, views?, clicks?, likes?, comments?, shares?, orders?, note?, publishedAt? }
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -53,6 +53,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const category = typeof body.category === "string" ? body.category : project.productCategory ?? null;
+  const market = typeof body.market === "string" ? body.market.toUpperCase() : project.targetMarket;
+  const language = typeof body.language === "string" ? body.language : project.targetLanguage;
+  if (market && !/^[A-Z]{2}$/.test(market)) return apiError(req, "市场代码无效", "Invalid market code", 400);
+  if (language && !/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(language)) return apiError(req, "语言代码无效", "Invalid language code", 400);
   const [row] = await db
     .insert(publishMetrics)
     .values({
@@ -61,7 +65,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       hookId: typeof body.hookId === "string" && body.hookId ? body.hookId : null,
       category,
       platform: typeof body.platform === "string" ? body.platform : null,
+      market: market ?? null,
+      language: language ?? null,
       views: num(body.views),
+      clicks: num(body.clicks),
       likes: num(body.likes),
       comments: num(body.comments),
       shares: num(body.shares),

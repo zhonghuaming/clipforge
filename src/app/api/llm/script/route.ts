@@ -11,7 +11,7 @@ import { scripts as scriptsTable, projects, publishMetrics } from "@/lib/db/sche
 import { eq } from "drizzle-orm";
 import { apiError, errText } from "@/lib/api-error";
 import { llmErrorPair } from "@/lib/llm-error";
-import { topConvertingStyle, topConvertingHook, buildPerformanceHint, type MetricInput } from "@/lib/performance-insights";
+import { buildPerformanceHint, metricsForMarket, recommendCommerceContent, type MetricInput } from "@/lib/performance-insights";
 
 /** Allowed enum values for the styleType column in the scripts table */
 const VALID_SCRIPT_STYLE = new Set([
@@ -95,30 +95,41 @@ function normalizeStyle(raw: unknown): ScriptStyleType {
  * enough samples, and degrades to an empty hint on cold start or any DB error (never blocks generation).
  * Returns the hint text plus the top-converting style key (used to bias "auto"/smart-recommend mode).
  */
-async function loadInsights(category: string): Promise<{ hint: string; topStyle: string | null }> {
+async function loadInsights(category: string, projectId?: string, market?: string, language?: string): Promise<{ hint: string; topStyle: string | null }> {
   try {
     const db = getDb();
-    const rows = await db.select().from(publishMetrics);
+    if ((!market || !language) && projectId) {
+      const [project] = await db.select({ market: projects.targetMarket, language: projects.targetLanguage }).from(projects).where(eq(projects.id, projectId));
+      market ||= project?.market ?? undefined;
+      language ||= project?.language ?? undefined;
+    }
+    if (!market || !language) return { hint: "", topStyle: null };
+    const rows = metricsForMarket(await db.select().from(publishMetrics), market, language);
     if (rows.length === 0) return { hint: "", topStyle: null };
     const toRec = (r: (typeof rows)[number]): MetricInput => ({
       style: r.style,
       hookId: r.hookId ?? undefined,
       views: r.views,
+      clicks: r.clicks,
       likes: r.likes,
       comments: r.comments,
       shares: r.shares,
       orders: r.orders,
     });
     const scoped = rows.filter((r) => r.category === category).map(toRec);
-    const all = rows.map(toRec);
-    // same-category signal first (topConvertingStyle/Hook require >=2 samples and return null otherwise),
-    // then global fallback so a creator with cross-category history still gets a useful prior
-    const topStyle = topConvertingStyle(scoped) ?? topConvertingStyle(all);
-    const topHook = topConvertingHook(scoped) ?? topConvertingHook(all);
-    const hint = buildPerformanceHint(topStyle, topHook, {
-      styleLabel: (s) => styleNameMap[s as ScriptStyleType] ?? s,
+    const categoryDecision = recommendCommerceContent(scoped);
+    const decision = categoryDecision.objective !== "explore" ? categoryDecision : recommendCommerceContent(rows.map(toRec));
+    const topStyle = decision.style && "style" in decision.style ? decision.style : null;
+    const topHook = decision.hook && "hookId" in decision.hook ? decision.hook : null;
+    const labels = {
+      styleLabel: (s: string) => styleNameMap[s as ScriptStyleType] ?? s,
       hookLabel: hookPatternName,
-    });
+    };
+    const hint = decision.objective === "orders"
+      ? buildPerformanceHint(topStyle, topHook, labels)
+      : decision.objective === "clicks"
+        ? `【${market}/${language} 历史点击反馈】点击率最高的脚本风格：${topStyle ? labels.styleLabel(topStyle.style) : "暂无"}；开场钩子：${topHook ? labels.hookLabel(topHook.hookId) : "暂无"}。优先测试这些方向，尚无成交证据。`
+        : "";
     return { hint, topStyle: topStyle?.style ?? null };
   } catch (e) {
     // Feedback is best-effort — never let a metrics read failure break script generation
@@ -157,6 +168,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const [projectContext] = body.projectId
+      ? await getDb().select({ market: projects.targetMarket, language: projects.targetLanguage }).from(projects).where(eq(projects.id, body.projectId))
+      : [];
+    const targetMarket = typeof body.targetMarket === "string" && /^[A-Z]{2}$/.test(body.targetMarket) ? body.targetMarket : projectContext?.market ?? undefined;
+    const targetLanguage = typeof body.targetLanguage === "string" && /^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(body.targetLanguage) ? body.targetLanguage : projectContext?.language ?? undefined;
     // Product image analysis: convert local paths to base64 before passing to the vision model
     let analysis = body.productAnalysis;
     if (!analysis && productImages?.length > 0 && llmConfig) {
@@ -174,7 +190,7 @@ export async function POST(req: NextRequest) {
     // Data flywheel (read side): pull the creator's real conversion feedback for this category.
     // Used two ways: (1) bias smart-recommend ("auto") mode toward the top-converting style,
     // (2) inject an advisory hint into the prompt so generated variants lean toward what sells.
-    const insights = useInsights ? await loadInsights(category) : { hint: "", topStyle: null };
+    const insights = useInsights ? await loadInsights(category, body.projectId, targetMarket, targetLanguage) : { hint: "", topStyle: null };
     if (useInsights && isAutoStyle && insights.topStyle) {
       styleType = normalizeStyle(insights.topStyle);
     }
@@ -182,6 +198,8 @@ export async function POST(req: NextRequest) {
     // Generate script (category/styleType/duration already normalized above)
     const scripts = await generateScript({
       productName,
+      targetMarket,
+      targetLanguage,
       category,
       productDescription,
       productAnalysis: analysis,

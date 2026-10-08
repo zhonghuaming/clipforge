@@ -682,6 +682,8 @@ export const PRODUCT_ANALYSIS_PROMPT = `你是一位专业的电商选品分析�
 export interface ScriptGenerationInput {
   /** product name */
   productName: string;
+  targetMarket?: string;
+  targetLanguage?: string;
   /** product category */
   category: ProductCategory;
   /** product description / selling points */
@@ -857,7 +859,9 @@ export function buildUserPrompt(input: ScriptGenerationInput): string {
   // Placed last for maximum prominence, overrides any "中文" wording in the spec above.
   // Same technique used in the topic path (buildTopicPrompt).
   const productText = `${productName || ""} ${productDescription || ""} ${usageAdvantage || ""}`;
-  if (productText.trim() && !/[一-鿿]/.test(productText)) {
+  if (input.targetLanguage) {
+    parts.push(`\n【TARGET MARKET AND LANGUAGE — OVERRIDES EARLIER LANGUAGE EXAMPLES】Target market: ${input.targetMarket || "unspecified"}. Write every title, voiceover, on-screen caption and call to action in ${input.targetLanguage}. Keep product claims limited to the supplied product facts. The source product description may be in another language. Search terms may be in the target language; camera prompts may remain English.`);
+  } else if (productText.trim() && !/[一-鿿]/.test(productText)) {
     parts.push(
       `\n【LANGUAGE — IMPORTANT, overrides any "中文" wording above】The product info is NOT in Chinese. Write every "title" and "voiceover" field in the SAME language as the product (e.g. natural English for an overseas TikTok Shop audience), never Chinese. Keep "searchTerms" in English as usual; "description"/"camera" may be concise English.`
     );

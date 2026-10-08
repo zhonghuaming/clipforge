@@ -38,10 +38,12 @@ export async function POST(req: NextRequest) {
 
       const result = status.result;
       const videoUrls = result && "videoUrls" in result ? result.videoUrls : undefined;
+      const actualCostUsd = result && "extra" in result ? Number(result.extra?.actualCostUsd) : NaN;
 
       await updateAiTaskByProviderTaskId(providerName, taskId, {
         status: toRowStatus(status.status),
         ...(videoUrls && { resultUrls: videoUrls }),
+        ...(providerName === "minimax-h3" && Number.isFinite(actualCostUsd) ? { actualCostCents: Math.round(actualCostUsd * 100) } : {}),
         error: status.error ?? null,
       });
 
@@ -49,6 +51,7 @@ export async function POST(req: NextRequest) {
         taskId,
         status: status.status,
         videoUrls,
+        ...(providerName === "minimax-h3" && Number.isFinite(actualCostUsd) ? { actualCostUsd } : {}),
         error: status.error,
       });
     } catch (error) {

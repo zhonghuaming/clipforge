@@ -14,11 +14,16 @@ export interface MetricInput {
   /** Hook mechanism id (= HookPattern.id), locked at entry time; used for hook A/B feedback, nullable */
   hookId?: string;
   views: number;
+  clicks?: number;
   likes?: number;
   comments?: number;
   shares?: number;
   /** Number of orders (conversions) */
   orders?: number;
+}
+
+export function metricsForMarket<T extends { market: string | null; language: string | null }>(rows: T[], market: string, language: string): T[] {
+  return rows.filter((row) => row.market === market && row.language === language);
 }
 
 interface GroupStats {
@@ -30,6 +35,8 @@ interface GroupStats {
   /** Conversion rate: orders / views, 0..1 */
   conversionRate: number;
   totalOrders: number;
+  clickThroughRate: number;
+  totalViews: number;
 }
 
 export interface StyleInsight extends GroupStats {
@@ -61,6 +68,7 @@ function aggregateBy(
     const totalViews = sum(rs, (r) => r.views);
     const totalEng = sum(rs, (r) => (r.likes || 0) + (r.comments || 0) + (r.shares || 0));
     const totalOrders = sum(rs, (r) => r.orders || 0);
+    const totalClicks = sum(rs, (r) => r.clicks || 0);
     out.push({
       key,
       samples,
@@ -68,6 +76,8 @@ function aggregateBy(
       engagementRate: totalViews > 0 ? totalEng / totalViews : 0,
       conversionRate: totalViews > 0 ? totalOrders / totalViews : 0,
       totalOrders,
+      clickThroughRate: totalViews > 0 ? totalClicks / totalViews : 0,
+      totalViews,
     });
   }
   return out.sort((a, b) => b.conversionRate - a.conversionRate || b.samples - a.samples);
@@ -93,6 +103,18 @@ export function topConvertingStyle(records: MetricInput[], minSamples = 2): Styl
 export function topConvertingHook(records: MetricInput[], minSamples = 2): HookInsight | null {
   const ranked = aggregateByHook(records).filter((i) => i.samples >= minSamples && i.conversionRate > 0);
   return ranked[0] ?? null;
+}
+
+/** Market-scoped recommendation; only groups with enough posts and views can win. */
+export function recommendCommerceContent(records: MetricInput[]) {
+  const eligible = <T extends GroupStats>(groups: T[]) => groups.filter((group) => group.samples >= 2 && group.totalViews >= 100);
+  const styles = eligible(aggregateByStyle(records));
+  const hooks = eligible(aggregateByHook(records));
+  const objective = styles.some((group) => group.totalOrders > 0) ? "orders"
+    : styles.some((group) => group.clickThroughRate > 0) ? "clicks" : "explore";
+  const score = (group: GroupStats) => objective === "orders" ? group.conversionRate : group.clickThroughRate;
+  const rank = <T extends GroupStats>(groups: T[]) => [...groups].filter((group) => score(group) > 0).sort((a, b) => score(b) - score(a) || b.samples - a.samples)[0] ?? null;
+  return { objective, style: objective === "explore" ? null : rank(styles), hook: objective === "explore" ? null : rank(hooks) } as const;
 }
 
 /** Optional display-name resolvers so the feedback hint reads with human labels instead of raw keys */

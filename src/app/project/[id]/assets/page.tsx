@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSettingsStore } from "@/lib/stores/settings-store";
+import { estimateH3Cost } from "@/lib/h3-pricing";
 import { mergeCustomModels, buildImageOptions, buildVideoOptions, toEditVariant } from "@/lib/gen-params";
 import { resolveFilmModel } from "@/lib/storyboard-film";
 import { useCharacterStore } from "@/lib/stores/project-store";
@@ -174,7 +175,7 @@ export default function AssetsPage() {
   // when no image model is configured (modelTarget is null), offer key-free users a free stock fill entry point
   const offerStockFill = !loading && shouldOfferStockFill(assets, contentType, modelTarget !== null);
   // only show the "configure a model" warning when there are still AI shots that need generating (no warning once everything is ready, to avoid contradicting the "all done" state)
-  const showModelWarning = !loading && needsImageModelWarning(assets, modelTarget !== null);
+  const showModelWarning = !loading && needsImageModelWarning(assets, modelTarget !== null || (videoModelTarget?.provider === "minimax-h3" && productImages.length > 0));
 
   // load real data: project info + selected script shots + resolve the provider for the default image model
   useEffect(() => {
@@ -442,6 +443,7 @@ export default function AssetsPage() {
       });
       let savedUrl = url;
       let savedLastFrame: string | undefined;
+      if (!saveRes.ok) throw new Error(locale === "zh" ? "H3 镜头保存失败" : "Could not save the H3 clip");
       if (saveRes.ok) {
         const saved = await saveRes.json();
         if (saved.filePath) savedUrl = saved.filePath;
@@ -450,6 +452,11 @@ export default function AssetsPage() {
           savedLastFrame = saved.lastFrameUrl;
           lastFrameByShot.current.set(shotId, saved.lastFrameUrl);
         }
+      }
+      if (provider === "minimax-h3") {
+        await reloadAssets();
+        setTaskMsg(locale === "zh" ? "H3 镜头已保存为候选，请在生产页预览并选用后再合成。" : "H3 clip saved as a candidate. Review and select it on the production page before composing.");
+        return;
       }
       setAssets((prev) =>
         prev.map((a) =>
@@ -468,7 +475,7 @@ export default function AssetsPage() {
         )
       );
     },
-    [id]
+    [id, reloadAssets, locale]
   );
 
   // resume a persisted cloud task: query (and wait for) its status, then save the result
@@ -623,7 +630,9 @@ export default function AssetsPage() {
         description: asset?.description,
         locale,
       });
-      if (controlPlan.promptSuffix) finalPrompt = `${finalPrompt}. ${controlPlan.promptSuffix}`;
+      if (videoModelTarget.provider === "minimax-h3") {
+        finalPrompt += ". Preserve the supplied product's real shape, colors, packaging and markings. No spoken dialogue; narration is added after generation.";
+      } else if (controlPlan.promptSuffix) finalPrompt = `${finalPrompt}. ${controlPlan.promptSuffix}`;
       const consistencyFailure = checkPromptConsistency(finalPrompt, projectVisualBible).find((issue) => issue.severity === "fail");
       if (consistencyFailure) {
         setAssets((prev) => prev.map((item) => item.shotId === shotId ? { ...item, error: t("visualBibleBlocked", { anchor: consistencyFailure.anchor }) } : item));
@@ -646,9 +655,33 @@ export default function AssetsPage() {
         if (controlPlan.audioPrompt) videoOptions.audioPrompt = controlPlan.audioPrompt;
       }
       const referenceImageUrls = controlPlan.referenceInputs.filter((item) => item.mediaType === "image").map((item) => item.url);
-      const referenceVideoUrls = controlPlan.referenceInputs.filter((item) => item.mediaType === "video").map((item) => item.url);
-      const referenceAudioUrls = controlPlan.referenceInputs.filter((item) => item.mediaType === "audio").map((item) => item.url);
-      const controlSummary = sanitizeVideoControlSummary(controlPlan);
+      if (videoModelTarget.provider === "minimax-h3" && productSafe) {
+        referenceImageUrls.push(...productImages);
+        referenceImageUrls.splice(0, referenceImageUrls.length, ...new Set(referenceImageUrls));
+        referenceImageUrls.length = Math.min(referenceImageUrls.length, 9);
+      }
+      const referenceVideoUrls = videoModelTarget.provider === "minimax-h3" ? [] : controlPlan.referenceInputs.filter((item) => item.mediaType === "video").map((item) => item.url);
+      const referenceAudioUrls = videoModelTarget.provider === "minimax-h3" ? [] : controlPlan.referenceInputs.filter((item) => item.mediaType === "audio").map((item) => item.url);
+      const controlSummary = sanitizeVideoControlSummary(videoModelTarget.provider === "minimax-h3"
+        ? { ...controlPlan, referenceCount: estimateH3Cost({ modelId: videoModelTarget.model, duration: Number(videoOptions.duration), referenceImageUrls, firstFrameUrl: controlPlan.firstFrameUrl }).images, audioMode: "post", voiceoverBound: false }
+        : controlPlan);
+      if (videoModelTarget.provider === "minimax-h3") {
+        const quote = estimateH3Cost({
+          modelId: videoModelTarget.model,
+          duration: Number(videoOptions.duration),
+          referenceImageUrls,
+          firstFrameUrl: controlPlan.firstFrameUrl,
+          lastFrameUrl: controlPlan.lastFrameUrl,
+        });
+        const approved = window.confirm(locale === "zh"
+          ? `MiniMax H3 ${quote.resolution}，${quote.seconds} 秒，${quote.images} 张参考图，预计 $${quote.totalUsd.toFixed(2)}。确认提交付费生成？`
+          : `MiniMax H3 ${quote.resolution}, ${quote.seconds}s, ${quote.images} reference images. Estimated $${quote.totalUsd.toFixed(2)}. Submit paid generation?`);
+        if (!approved) {
+          setMotionShots((prev) => { const next = new Set(prev); next.delete(shotId); return next; });
+          return;
+        }
+        videoOptions.extra = { approvedEstimateUsd: quote.totalUsd };
+      }
       try {
         const res = await fetch("/api/ai/video", {
           method: "POST",
@@ -733,6 +766,16 @@ export default function AssetsPage() {
       }
 
       // AI-generated shot: requires a default image model to be configured
+      if (!modelTarget && videoModelTarget?.provider === "minimax-h3" && productImages[0]) {
+        await fetch(`/api/project/${id}/assets`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shotId, type: "product_image", sourceUrl: productImages[0] }),
+        });
+        setAssets((prev) => prev.map((item) => item.shotId === shotId ? { ...item, status: "done", thumbnailUrl: productImages[0] } : item));
+        if (!opts?.skipMotion && autoMotion) await generateMotion(shotId, productImages[0]);
+        return productImages[0];
+      }
       if (!modelTarget) {
         setAssets((prev) =>
           prev.map((a) =>
@@ -835,7 +878,7 @@ export default function AssetsPage() {
         return undefined;
       }
     },
-    [assets, modelTarget, productImages, productSafe, imageParams, autoMotion, videoModelTarget, projectCreativeIntent, projectVisualBible, visualLook, generateMotion, t]
+    [assets, modelTarget, productImages, productSafe, imageParams, autoMotion, videoModelTarget, projectCreativeIntent, projectVisualBible, visualLook, generateMotion, t, id]
   );
 
   // storyboard grid: ONE image generation renders every shot as a 3x3 grid cell (person /
